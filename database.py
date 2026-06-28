@@ -113,10 +113,14 @@ def save_chat_message(thread_id: str, role: str, content: str):
 
         db.add(msg)
 
-        Conversation=(
+        conversation = (
             db.query(Conversation)
             .filter(Conversation.thread_id == thread_id)
+            .first()
         )
+
+        if conversation:
+            conversation.updated_at = datetime.utcnow()
 
         db.commit()
     
