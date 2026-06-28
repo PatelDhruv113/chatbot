@@ -1,16 +1,23 @@
 from datetime import datetime
 from pathlib import Path
+import os
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-Path("data").mkdir(exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent
 
-DATABASE_URL = "sqlite:///data/chatbot_memory.db"
+if os.name == "nt" and str(BASE_DIR).startswith("\\\\wsl.localhost"):
+    DATA_DIR = Path(os.getenv("LOCALAPPDATA", Path.home())) / "smartGPT" / "data"
+else:
+    DATA_DIR = BASE_DIR / "data"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATABASE_URL = "sqlite:///" + str(DATA_DIR / "chatbot_memory.db").replace("\\", "/")
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False, "timeout": 30}
 )
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -137,7 +144,7 @@ def save_memory(thread_id: str, memory: str):
         item = LongTermMemory(
             thread_id=thread_id,
             memory=memory,
-            create_at=datetime.utcnow()
+            created_at=datetime.utcnow()
         )
 
         db.add(item)

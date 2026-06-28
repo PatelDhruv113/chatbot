@@ -17,7 +17,15 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.sqlite import SqliteSaver
 from tools import tools
 
-Path("data").mkdir(exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent
+
+if os.name == "nt" and str(BASE_DIR).startswith("\\\\wsl.localhost"):
+    DATA_DIR = Path(os.getenv("LOCALAPPDATA", Path.home())) / "smartGPT" / "data"
+else:
+    DATA_DIR = BASE_DIR / "data"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+CHECKPOINT_DB = DATA_DIR / "langgraph_checkpoints.sqlite"
 
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
@@ -32,7 +40,7 @@ ALLOWED_MODELS = {
 
 
 SYSTEM_PROMPT = """
-You are a helpful Agentic AI assistant named BappyGPT similar to ChatGPT.
+You are a helpful Agentic AI assistant named smartGPT similar to ChatGPT.
 
 You can:
 1. Answer normal questions.
@@ -72,7 +80,7 @@ def build_agent(model_name: str):
     
     llm = ChatGoogleGenerativeAI(
         model=selected_model,
-        temprature=0.3,
+        temperature=0.3,
         streaming=True
     )
 
@@ -102,9 +110,12 @@ def build_agent(model_name: str):
     workflow.add_edge("tools", "chatbot")
 
     conn = sqlite3.connect(
-        "data/langgraph_checkpoints.sqlite",
-        check_same_thread=False
+        CHECKPOINT_DB,
+        check_same_thread=False,
+        timeout=30
     )
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
 
     checkpointer = SqliteSaver(conn)
 

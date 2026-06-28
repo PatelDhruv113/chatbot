@@ -14,7 +14,7 @@ for message_chunk, metadata in agent.stream(
     {
         "messages": [
             HumanMessage(
-                content="Generate a blog about Machine learning"
+                content="Generate a blog about Deep learning"
                 )
             ]
     },

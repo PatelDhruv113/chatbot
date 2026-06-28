@@ -1,4 +1,5 @@
 import math
+import os
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langchain_tavily import TavilySearch
@@ -13,11 +14,14 @@ def set_current_thread_id(thread_id: str):
     global CURRENT_THREAD_ID
     CURRENT_THREAD_ID=thread_id
 
-web_search = TavilySearch(
-    max_results = 5,
-    topic = "general",
-    search_depth = "advanced"
-)
+web_search = None
+
+if os.getenv("TAVILY_API_KEY"):
+    web_search = TavilySearch(
+        max_results = 5,
+        topic = "general",
+        search_depth = "advanced"
+    )
 
 @tool
 def calculator(expression: str) -> str:
@@ -49,6 +53,8 @@ def search_uploaded_documents(query: str) -> str:
     Search uploaded documents for relevant information.
     Use this when the user asks about uploaded PDFs, DOCX, TXT, notes, files, or documents.
     """
+
+    from rag import retrieve_from_rag
 
     return retrieve_from_rag(
         query=query,
@@ -83,6 +89,8 @@ tools = [
     calculator,
     search_uploaded_documents,
     remember_this,
-    recall_memory,
-    web_search
+    recall_memory
 ]
+
+if web_search is not None:
+    tools.append(web_search)
